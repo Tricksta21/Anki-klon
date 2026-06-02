@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta name="theme-color" content="#101114"/>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <title>Språk-Anki Pro</title>
+  <style>
+    :root{
+      --bg:#101114;--card:#181a20;--card2:#222633;--text:#f5f5f5;--muted:#a8adb7;
+      --accent:#6ea8fe;--good:#37c978;--bad:#ff6b6b;--warn:#ffd166;--border:#303544;
+      --tone1:#ff6b6b;--tone2:#37c978;--tone3:#ffd166;--tone4:#6ea8fe;--tone5:#a8adb7;
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding-bottom:92px}
+    header{padding:calc(14px + env(safe-area-inset-top)) 16px 12px;border-bottom:1px solid var(--border);background:#0d0e11;position:sticky;top:0;z-index:5}
+    h1{font-size:1.15rem;margin:0} h2{margin:.2rem 0 1rem;font-size:1.1rem}
+    .small{font-size:.86rem;color:var(--muted)} .muted{color:var(--muted)}
+    main{padding:14px;display:grid;gap:12px;max-width:820px;margin:auto}
+    section{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:14px}
+    .hidden{display:none!important}
+    label{display:grid;gap:6px;color:var(--muted);font-size:.9rem;margin-bottom:10px}
+    input,textarea,select,button{font:inherit;font-size:16px}
+    input,textarea,select{width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:#0f1015;color:var(--text)}
+    textarea{min-height:95px;resize:vertical}
+    button{border:1px solid var(--border);background:var(--card2);color:var(--text);padding:12px 14px;border-radius:14px;cursor:pointer;min-height:46px}
+    button.primary{background:var(--accent);border-color:var(--accent);color:#071426;font-weight:800}
+    button.good{background:var(--good);border-color:var(--good);color:#06170d;font-weight:800}
+    button.bad{background:var(--bad);border-color:var(--bad);color:#250404;font-weight:800}
+    button.warn{background:var(--warn);border-color:var(--warn);color:#1d1600;font-weight:800}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.row>*{flex:1}
+    .grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+    .study-card{min-height:47vh;display:grid;place-items:center;text-align:center;background:linear-gradient(180deg,#1c202b,#13151b);
+      border:1px solid var(--border);border-radius:22px;padding:20px;margin-top:12px}
+    .big{font-size:clamp(2.4rem,16vw,5.6rem);line-height:1.08;margin:0 0 10px;word-break:break-word}
+    .answer{margin-top:18px;padding-top:16px;border-top:1px solid var(--border);display:grid;gap:8px}
+    .pill{display:inline-block;padding:4px 9px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:.8rem;margin:2px}
+    .tone1{color:var(--tone1)}.tone2{color:var(--tone2)}.tone3{color:var(--tone3)}.tone4{color:var(--tone4)}.tone5{color:var(--tone5)}
+    nav{position:fixed;left:0;right:0;bottom:0;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:#0d0e11;border-top:1px solid var(--border);
+      display:grid;grid-template-columns:repeat(5,1fr);gap:6px;z-index:10}
+    nav button{font-size:.72rem;padding:8px 4px;min-height:48px;border-radius:12px}
+    nav button.active{background:var(--accent);color:#071426;font-weight:800}
+    table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{border-bottom:1px solid var(--border);padding:9px;text-align:left;vertical-align:top}th{color:var(--muted)}
+    .scroll{overflow:auto;max-height:65vh}
+    .toast{position:fixed;left:16px;right:16px;bottom:96px;background:#232838;border:1px solid var(--border);padding:12px;border-radius:14px;text-align:center;z-index:20}
+    .statbox{background:#11131a;border:1px solid var(--border);border-radius:14px;padding:12px}
+    .bar{height:10px;background:#0f1015;border-radius:999px;overflow:hidden}.bar>span{display:block;height:100%;background:var(--accent);width:0%}
+    code{background:#0f1015;padding:2px 5px;border-radius:6px}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Språk-Anki Pro</h1>
+  <div class="small">Kinesisk · Koreansk · Bengali · FSRS-ish · TTS · sync-ready · offline</div>
+</header>
+
+<main>
+  <section id="study">
+    <div class="row">
+      <label>Språk
+        <select id="studyLang"><option value="all">Alle</option><option value="zh">Kinesisk</option><option value="ko">Koreansk</option><option value="bn">Bengali</option></select>
+      </label>
+      <label>Retning
+        <select id="direction"><option value="front">Ord → svar</option><option value="meaning">Engelsk → ord</option></select>
+      </label>
+    </div>
+    <div class="small" id="stats"></div>
+    <div class="study-card">
+      <div>
+        <p class="big" id="frontText">Ingen kort</p>
+        <p class="small" id="frontMeta">Legg til kort først.</p>
+        <div id="answerBox" class="answer hidden"></div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="primary" id="showAnswer">Vis svar</button>
+      <button id="speakFront">🔊</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="bad grade hidden" data-grade="again">Igjen</button>
+      <button class="warn grade hidden" data-grade="hard">Hard</button>
+      <button class="good grade hidden" data-grade="good">Bra</button>
+      <button class="grade hidden" data-grade="easy">Lett</button>
+    </div>
+  </section>
+
+  <section id="add" class="hidden">
+    <h2>Legg til kort</h2>
+    <label>Språk
+      <select id="lang"><option value="zh">Kinesisk</option><option value="ko">Koreansk</option><option value="bn">Bengali</option></select>
+    </label>
+    <label>Ord / tegn / frase <input id="front" placeholder="诚实 / 안녕하세요 / আমি ভালো আছি"></label>
+    <label>Engelsk betydning <input id="english" placeholder="honest / hello / I am well"></label>
+    <label id="pinyinWrap">Pinyin <input id="pinyin" placeholder="chéngshí eller cheng2 shi2"></label>
+    <label>Uttale / romanisering <input id="pronunciation" placeholder="cheng-shr / an-nyeong-ha-se-yo / ami bhalo achi"></label>
+    <label>Eksempelsetning <textarea id="example" placeholder="你就跟我说实话"></textarea></label>
+    <label>Eksempel oversatt <input id="exampleEn" placeholder="Just tell me the truth"></label>
+    <label>Tagger <input id="tags" placeholder="HSK1, TOPIK, vanlig, grammatikk"></label>
+    <button class="primary" id="saveCard">Lagre kort</button>
+    <button id="seedCards" style="margin-top:8px">Legg inn eksempel-kort</button>
+  </section>
+
+  <section id="cards" class="hidden">
+    <h2>Kortbank</h2>
+    <input id="search" placeholder="Søk i kort, tagger, språk">
+    <div class="scroll" style="margin-top:10px"><table><thead><tr><th>Kort</th><th>SRS</th><th></th></tr></thead><tbody id="cardTable"></tbody></table></div>
+  </section>
+
+  <section id="statsPage" class="hidden">
+    <h2>Statistikk</h2>
+    <div class="grid">
+      <div class="statbox"><b id="streak">0</b><div class="small">dagers streak</div></div>
+      <div class="statbox"><b id="totalReviews">0</b><div class="small">reviews totalt</div></div>
+      <div class="statbox"><b id="dueCount">0</b><div class="small">forfalt nå</div></div>
+      <div class="statbox"><b id="cardCount">0</b><div class="small">kort totalt</div></div>
+    </div>
+    <h3>Språkfordeling</h3>
+    <div id="langBars"></div>
+  </section>
+
+  <section id="sync" class="hidden">
+    <h2>Backup / Sync</h2>
+    <p class="small">Offline + persistent lagring bruker <code>localStorage</code>. For ekte sync mellom mobil og PC: fyll inn Firebase config i <code>firebase-config.js</code>.</p>
+    <div class="row">
+      <button class="primary" id="exportBtn">Eksporter JSON</button>
+      <button id="importText">Importer tekst</button>
+    </div>
+    <label>Importer JSON-fil <input type="file" id="importFile" accept="application/json"></label>
+    <textarea id="jsonBox" placeholder="JSON backup vises her, eller lim inn import her"></textarea>
+    <div class="row">
+      <button id="firebasePush">Push til Firebase</button>
+      <button id="firebasePull">Pull fra Firebase</button>
+    </div>
+    <label>Sync-ID <input id="syncId" placeholder="f.eks. min-deck-1"></label>
+    <button class="bad" id="clearAll">Slett alt lokalt</button>
+  </section>
+</main>
+
+<nav>
+  <button class="tab active" data-tab="study">Øv</button>
+  <button class="tab" data-tab="add">Legg til</button>
+  <button class="tab" data-tab="cards">Kort</button>
+  <button class="tab" data-tab="statsPage">Stats</button>
+  <button class="tab" data-tab="sync">Sync</button>
+</nav>
+
+<script src="firebase-config.js"></script>
+<script type="module">
+let firebaseApp=null, firebaseDb=null;
+async function initFirebase(){
+  if(!window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.apiKey) return false;
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js");
+  const { getFirestore, doc, setDoc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js");
+  firebaseApp = initializeApp(window.FIREBASE_CONFIG);
+  firebaseDb = getFirestore(firebaseApp);
+  window._fb = { doc, setDoc, getDoc };
+  return true;
+}
+window.initFirebase = initFirebase;
+</script>
+
+<script>
+const STORAGE_KEY="language_anki_pro_v1";
+const $=id=>document.getElementById(id);
+const langNames={zh:"Kinesisk",ko:"Koreansk",bn:"Bengali"};
+const speechLangs={zh:"zh-CN",ko:"ko-KR",bn:"bn-BD"};
+let state=loadState(), currentCard=null, showingAnswer=false;
+
+function toast(msg){const d=document.createElement("div");d.className="toast";d.textContent=msg;document.body.appendChild(d);setTimeout(()=>d.remove(),2100)}
+function todayKey(){return new Date().toISOString().slice(0,10)}
+function now(){return Date.now()}
+function defaultState(){return{cards:[],reviewLog:[],settings:{syncId:"default"},createdAt:new Date().toISOString()}}
+function loadState(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||defaultState()}catch{return defaultState()}}
+function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));updateStats();renderStats()}
+function escapeHtml(s){return String(s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+
+function toneNumberFromChar(ch){
+  if("āēīōūǖ".includes(ch))return 1;
+  if("áéíóúǘ".includes(ch))return 2;
+  if("ǎěǐǒǔǚ".includes(ch))return 3;
+  if("àèìòùǜ".includes(ch))return 4;
+  return 5;
+}
+function colorPinyin(p){
+  return escapeHtml(p).split(/\s+/).map(s=>{
+    let tone=5; for(const ch of s){const t=toneNumberFromChar(ch); if(t!==5){tone=t;break}}
+    const num=s.match(/[1-5]$/); if(num) tone=Number(num[0]);
+    return `<span class="tone${tone}">${s}</span>`;
+  }).join(" ");
+}
+function makeCard(d){return{
+ id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),
+ lang:d.lang,front:d.front.trim(),english:d.english.trim(),pinyin:d.lang==="zh"?d.pinyin.trim():"",
+ pronunciation:d.pronunciation.trim(),example:d.example.trim(),exampleEn:d.exampleEn.trim(),
+ tags:d.tags.split(",").map(x=>x.trim()).filter(Boolean),
+ createdAt:new Date().toISOString(),due:now(),stability:0,difficulty:5,intervalDays:0,reps:0,lapses:0,lastGrade:null
+}}
+
+function dueCards(){const f=$("studyLang").value;return state.cards.filter(c=>(f==="all"||c.lang===f)&&c.due<=now()).sort((a,b)=>a.due-b.due)}
+function pickCard(){currentCard=dueCards()[0]||null;showingAnswer=false;renderStudy()}
+function frontForCard(c){return $("direction").value==="meaning"?c.english:c.front}
+function renderStudy(){
+ $("answerBox").classList.toggle("hidden",!showingAnswer);
+ document.querySelectorAll(".grade").forEach(b=>b.classList.toggle("hidden",!showingAnswer));
+ if(!currentCard){$("frontText").textContent="Ingen kort klare";$("frontMeta").textContent="Legg til kort, eller vent til repetisjon."; $("answerBox").innerHTML=""; return}
+ $("frontText").textContent=frontForCard(currentCard);
+ $("frontMeta").innerHTML=`<span class="pill">${langNames[currentCard.lang]}</span> ${currentCard.tags.map(t=>`<span class="pill">${escapeHtml(t)}</span>`).join("")}`;
+ if(showingAnswer){
+   const reverse = $("direction").value==="meaning";
+   $("answerBox").innerHTML=`
+     ${reverse?`<p><b>Ord:</b> ${escapeHtml(currentCard.front)}</p>`:`<p><b>Engelsk:</b> ${escapeHtml(currentCard.english)}</p>`}
+     ${currentCard.pinyin?`<p><b>Pinyin:</b> ${colorPinyin(currentCard.pinyin)}</p>`:""}
+     ${currentCard.pronunciation?`<p><b>Uttale:</b> ${escapeHtml(currentCard.pronunciation)}</p>`:""}
+     ${currentCard.example?`<p><b>Eksempel:</b> ${escapeHtml(currentCard.example)}</p>`:""}
+     ${currentCard.exampleEn?`<p><b>Eksempel engelsk:</b> ${escapeHtml(currentCard.exampleEn)}</p>`:""}
+     <button onclick="speak('${currentCard.id}', false)">🔊 Ord</button>
+     ${currentCard.example?`<button onclick="speak('${currentCard.id}', true)">🔊 Eksempel</button>`:""}`;
+ } else $("answerBox").innerHTML="";
+}
+
+/* FSRS-ish: not exact FSRS, but uses stability/difficulty style instead of old SM2 only. */
+function gradeCard(c,g){
+ const rating={again:1,hard:2,good:3,easy:4}[g];
+ c.reps++; c.lastGrade=g;
+ if(g==="again"){c.lapses++; c.difficulty=Math.min(10,c.difficulty+1.2); c.stability=Math.max(.05,c.stability*.35); c.intervalDays=0; c.due=now()+10*60*1000}
+ if(g==="hard"){c.difficulty=Math.min(10,c.difficulty+.45); c.stability=Math.max(.5,c.stability*1.25 || .5); c.intervalDays=Math.max(1,Math.round(c.stability)); c.due=now()+c.intervalDays*86400000}
+ if(g==="good"){c.difficulty=Math.max(1,c.difficulty-.15); c.stability=(c.stability||1)*2.4; c.intervalDays=Math.max(1,Math.round(c.stability)); c.due=now()+c.intervalDays*86400000}
+ if(g==="easy"){c.difficulty=Math.max(1,c.difficulty-.6); c.stability=(c.stability||1)*4.0; c.intervalDays=Math.max(3,Math.round(c.stability)); c.due=now()+c.intervalDays*86400000}
+ state.reviewLog.push({cardId:c.id,grade:g,rating,date:new Date().toISOString(),lang:c.lang});
+ saveState();pickCard();renderCards()
+}
+function speak(id, example){
+ const c=state.cards.find(x=>x.id===id)||currentCard;
+ if(!c||!("speechSynthesis"in window)){toast("Tale støttes ikke her");return}
+ const text=example && c.example ? c.example : c.front;
+ const u=new SpeechSynthesisUtterance(text);u.lang=speechLangs[c.lang]||"en-US";u.rate=.82;speechSynthesis.cancel();speechSynthesis.speak(u)
+}
+function renderCards(){
+ const q=($("search")?.value||"").toLowerCase();
+ $("cardTable").innerHTML=state.cards.filter(c=>[c.front,c.english,c.pinyin,c.pronunciation,c.example,c.exampleEn,c.tags.join(" "),langNames[c.lang]].join(" ").toLowerCase().includes(q))
+ .map(c=>`<tr><td><b>${escapeHtml(c.front)}</b><br><span class="small">${langNames[c.lang]} · ${escapeHtml(c.english)}${c.pinyin?" · "+colorPinyin(c.pinyin):""}${c.pronunciation?" · "+escapeHtml(c.pronunciation):""}</span></td><td class="small">${c.reps} reps<br>${c.intervalDays} d<br>D:${c.difficulty.toFixed(1)} S:${c.stability.toFixed(1)}</td><td><button class="bad" onclick="deleteCard('${c.id}')">×</button></td></tr>`).join("")||`<tr><td colspan="3" class="small">Ingen kort.</td></tr>`;
+}
+function deleteCard(id){if(!confirm("Slette kortet?"))return;state.cards=state.cards.filter(c=>c.id!==id);saveState();renderCards();pickCard()}
+function updateStats(){$("stats").textContent=`${dueCards().length} forfalt · ${state.cards.length} kort · streak ${calcStreak()} dager`}
+function calcStreak(){
+ const days=[...new Set(state.reviewLog.map(r=>r.date.slice(0,10)))].sort().reverse();
+ let streak=0; let d=new Date();
+ for(;;){
+   const k=d.toISOString().slice(0,10);
+   if(days.includes(k)){streak++; d.setDate(d.getDate()-1); continue}
+   if(k===todayKey() && streak===0){d.setDate(d.getDate()-1); continue}
+   break;
+ }
+ return streak;
+}
+function renderStats(){
+ if(!$("streak"))return;
+ $("streak").textContent=calcStreak(); $("totalReviews").textContent=state.reviewLog.length;
+ $("dueCount").textContent=dueCards().length; $("cardCount").textContent=state.cards.length;
+ const counts={zh:0,ko:0,bn:0}; state.cards.forEach(c=>counts[c.lang]++);
+ const max=Math.max(1,...Object.values(counts));
+ $("langBars").innerHTML=Object.entries(counts).map(([l,n])=>`
+   <p>${langNames[l]}: ${n}</p><div class="bar"><span style="width:${Math.round(n/max*100)}%"></span></div>`).join("");
+}
+function seedCards(){
+ const e=[
+  {lang:"zh",front:"诚实",english:"honest",pinyin:"chéngshí",pronunciation:"cheng-shr",example:"你就跟我说实话",exampleEn:"Just tell me the truth",tags:"HSK,common"},
+  {lang:"zh",front:"解决",english:"to solve",pinyin:"jiějué",pronunciation:"jyeh-jweh",example:"哭解决不了问题",exampleEn:"Crying cannot solve the problem",tags:"HSK,verb"},
+  {lang:"zh",front:"问题",english:"problem",pinyin:"wèntí",pronunciation:"wen-tee",example:"这不是小问题",exampleEn:"This is not a small problem",tags:"HSK,common"},
+  {lang:"ko",front:"안녕하세요",english:"hello",pinyin:"",pronunciation:"an-nyeong-ha-se-yo",example:"안녕하세요, 만나서 반갑습니다",exampleEn:"Hello, nice to meet you",tags:"TOPIK,greeting"},
+  {lang:"ko",front:"전쟁",english:"war",pinyin:"",pronunciation:"jeon-jaeng",example:"중동전쟁의 여파",exampleEn:"The aftermath of the Middle East war",tags:"news"},
+  {lang:"bn",front:"আমি ভালো আছি",english:"I am well",pinyin:"",pronunciation:"ami bhalo achi",example:"আমি ভালো আছি",exampleEn:"I am well",tags:"basic"},
+  {lang:"bn",front:"বন্ধু",english:"friend",pinyin:"",pronunciation:"bondhu",example:"আমার বন্ধু আছে",exampleEn:"I have a friend",tags:"basic"}
+ ];
+ state.cards.push(...e.map(makeCard));saveState();renderCards();pickCard();toast("Eksempel-kort lagt til")
+}
+
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");
+ ["study","add","cards","statsPage","sync"].forEach(id=>$(id).classList.add("hidden"));$(b.dataset.tab).classList.remove("hidden");renderCards();renderStats()
+});
+$("lang").onchange=()=>$("pinyinWrap").style.display=$("lang").value==="zh"?"grid":"none";
+$("saveCard").onclick=()=>{
+ const d={lang:$("lang").value,front:$("front").value,english:$("english").value,pinyin:$("pinyin").value,pronunciation:$("pronunciation").value,example:$("example").value,exampleEn:$("exampleEn").value,tags:$("tags").value};
+ if(!d.front.trim()||!d.english.trim()){toast("Front og engelsk må fylles ut");return}
+ state.cards.push(makeCard(d));saveState();["front","english","pinyin","pronunciation","example","exampleEn","tags"].forEach(id=>$(id).value="");pickCard();toast("Kort lagret")
+};
+$("showAnswer").onclick=()=>{if(currentCard){showingAnswer=true;renderStudy()}};
+document.querySelectorAll(".grade").forEach(b=>b.onclick=()=>currentCard&&gradeCard(currentCard,b.dataset.grade));
+$("speakFront").onclick=()=>currentCard&&speak(currentCard.id,false);
+$("studyLang").onchange=pickCard; $("direction").onchange=pickCard;
+$("search").oninput=renderCards; $("seedCards").onclick=seedCards;
+$("exportBtn").onclick=()=>{
+ const json=JSON.stringify(state,null,2);$("jsonBox").value=json;
+ const blob=new Blob([json],{type:"application/json"});const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");a.href=url;a.download="language-anki-pro-data.json";a.click();URL.revokeObjectURL(url)
+};
+$("importFile").onchange=async e=>{const f=e.target.files[0];if(f)$("jsonBox").value=await f.text()};
+$("importText").onclick=()=>{try{const x=JSON.parse($("jsonBox").value);if(!Array.isArray(x.cards))throw Error("Mangler cards");state=x;saveState();renderCards();pickCard();toast("Importert")}catch(e){toast("Ugyldig JSON")}};
+$("clearAll").onclick=()=>{if(confirm("Slette alt lokalt?")){state=defaultState();saveState();renderCards();pickCard()}};
+$("syncId").value=state.settings.syncId||"default";
+$("syncId").oninput=()=>{state.settings.syncId=$("syncId").value.trim()||"default";saveState()};
+$("firebasePush").onclick=async()=>{
+ try{
+   const ok=await window.initFirebase(); if(!ok||!window._fb) return toast("Firebase config mangler");
+   const ref=window._fb.doc(firebaseDb,"decks",state.settings.syncId||"default");
+   await window._fb.setDoc(ref,{state,updatedAt:new Date().toISOString()});
+   toast("Pushet til Firebase");
+ }catch(e){toast("Firebase push feilet")}
+};
+$("firebasePull").onclick=async()=>{
+ try{
+   const ok=await window.initFirebase(); if(!ok||!window._fb) return toast("Firebase config mangler");
+   const ref=window._fb.doc(firebaseDb,"decks",state.settings.syncId||"default");
+   const snap=await window._fb.getDoc(ref);
+   if(!snap.exists()) return toast("Fant ikke deck");
+   state=snap.data().state; saveState(); renderCards(); pickCard(); toast("Hentet fra Firebase");
+ }catch(e){toast("Firebase pull feilet")}
+};
+window.deleteCard=deleteCard;window.speak=speak;
+if("serviceWorker"in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+updateStats();renderCards();renderStats();pickCard();
+</script>
+</body>
+</html>

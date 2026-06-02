@@ -1,0 +1,15 @@
+{
+  "name": "Språk-Anki Pro",
+  "short_name": "Språk-Anki",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#101114",
+  "theme_color": "#101114",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
