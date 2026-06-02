@@ -1,6 +1,6 @@
 {
-  "name": "Språk-Anki Pro",
-  "short_name": "Språk-Anki",
+  "name": "Magnus Anki klon",
+  "short_name": "Lingo",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#101114",
