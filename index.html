@@ -195,7 +195,7 @@ function makeCard(d){return{
  lang:d.lang,front:d.front.trim(),english:d.english.trim(),pinyin:d.lang==="zh"?d.pinyin.trim():"",
  pronunciation:d.pronunciation.trim(),example:d.example.trim(),exampleEn:d.exampleEn.trim(),
  tags:d.tags.split(",").map(x=>x.trim()).filter(Boolean),
- createdAt:new Date().toISOString(),due:now(),stability:0,difficulty:5,intervalDays:0,reps:0,lapses:0,lastGrade:null
+ createdAt:new Date().toISOString(),due:now(),stability:0.10,difficulty:5,intervalDays:0,reps:0,lapses:0,lastGrade:null
 }}
 
 function dueCards(){const f=$("studyLang").value;return state.cards.filter(c=>(f==="all"||c.lang===f)&&c.due<=now()).sort((a,b)=>a.due-b.due)}
@@ -221,15 +221,105 @@ function renderStudy(){
 }
 
 /* FSRS-ish: not exact FSRS, but uses stability/difficulty style instead of old SM2 only. */
+function intervalFromStability(s){
+  // Tid i millisekunder
+
+  if(s < 0.15) return 2 * 60 * 1000;          // 2 min
+  if(s < 0.30) return 6 * 60 * 1000;          // 6 min
+  if(s < 0.60) return 10 * 60 * 1000;         // 10 min
+  if(s < 1.20) return 24 * 60 * 60 * 1000;    // 1 dag
+
+  // Etter læringsfasen blir stability omtrent antall dager
+  return s * 24 * 60 * 60 * 1000;
+}
+
 function gradeCard(c,g){
- const rating={again:1,hard:2,good:3,easy:4}[g];
- c.reps++; c.lastGrade=g;
- if(g==="again"){c.lapses++; c.difficulty=Math.min(10,c.difficulty+1.2); c.stability=Math.max(.05,c.stability*.35); c.intervalDays=0; c.due=now()+10*60*1000}
- if(g==="hard"){c.difficulty=Math.min(10,c.difficulty+.45); c.stability=Math.max(.5,c.stability*1.25 || .5); c.intervalDays=Math.max(1,Math.round(c.stability)); c.due=now()+c.intervalDays*86400000}
- if(g==="good"){c.difficulty=Math.max(1,c.difficulty-.15); c.stability=(c.stability||1)*2.4; c.intervalDays=Math.max(1,Math.round(c.stability)); c.due=now()+c.intervalDays*86400000}
- if(g==="easy"){c.difficulty=Math.max(1,c.difficulty-.6); c.stability=(c.stability||1)*4.0; c.intervalDays=Math.max(3,Math.round(c.stability)); c.due=now()+c.intervalDays*86400000}
- state.reviewLog.push({cardId:c.id,grade:g,rating,date:new Date().toISOString(),lang:c.lang});
- saveState();pickCard();renderCards()
+
+  const rating={
+    again:1,
+    hard:2,
+    good:3,
+    easy:4
+  }[g];
+
+  c.reps++;
+  c.lastGrade=g;
+
+  // Gamle kort kan fortsatt ha stability = 0
+  if(!c.stability || c.stability <= 0){
+    c.stability=0.10;
+  }
+
+  if(g==="again"){
+    c.lapses++;
+
+    c.difficulty=Math.min(
+      10,
+      (c.difficulty || 5)+0.8
+    );
+
+    // Kraftig reduksjon av hvor godt kortet anses lært
+    c.stability=Math.max(
+      0.05,
+      c.stability*0.40
+    );
+  }
+
+  if(g==="hard"){
+    c.difficulty=Math.min(
+      10,
+      (c.difficulty || 5)+0.30
+    );
+
+    // Litt framgang, men veldig sakte
+    c.stability*=1.25;
+  }
+
+  if(g==="good"){
+    c.difficulty=Math.max(
+      1,
+      (c.difficulty || 5)-0.20
+    );
+
+    c.stability*=1.80;
+  }
+
+  if(g==="easy"){
+    c.difficulty=Math.max(
+      1,
+      (c.difficulty || 5)-0.60
+    );
+
+    c.stability*=2.80;
+  }
+
+  // Finn neste intervall ut fra den nye stability-scoren
+  let interval=intervalFromStability(c.stability);
+
+  // Hvis du faktisk glemte kortet, bør det komme tilbake raskt
+  if(g==="again"){
+    interval=Math.min(
+      interval,
+      10*60*1000
+    );
+  }
+
+  c.due=now()+interval;
+
+  // Behold intervalDays siden resten av appen bruker dette
+  c.intervalDays=interval/86400000;
+
+  state.reviewLog.push({
+    cardId:c.id,
+    grade:g,
+    rating,
+    date:new Date().toISOString(),
+    lang:c.lang
+  });
+
+  saveState();
+  pickCard();
+  renderCards();
 }
 function speak(id, example){
  const c=state.cards.find(x=>x.id===id)||currentCard;
