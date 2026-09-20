@@ -253,13 +253,17 @@ function makeCard(d){return{
  createdAt:new Date().toISOString(),due:now(),stability:0.10,difficulty:5,intervalDays:0,reps:0,lapses:0,lastGrade:null
 }}
 
-function dueCards(){const f=$("studyLang").value;return state.cards.filter(c=>(f==="all"||c.lang===f)&&c.due<=now()).sort((a,b)=>a.due-b.due)}
-function pickCard(){currentCard=dueCards()[0]||null;showingAnswer=false;renderStudy()}
+function cardsForStudy(){
+ const f=$("studyLang").value;
+ return state.cards.filter(c=>f==="all"||c.lang===f).sort((a,b)=>a.due-b.due);
+}
+function dueCards(){return cardsForStudy().filter(c=>c.due<=now())}
+function pickCard(){currentCard=cardsForStudy()[0]||null;showingAnswer=false;renderStudy()}
 function frontForCard(c){return $("direction").value==="meaning"?c.english:c.front}
 function renderStudy(){
  $("answerBox").classList.toggle("hidden",!showingAnswer);
  document.querySelectorAll(".grade").forEach(b=>b.classList.toggle("hidden",!showingAnswer));
- if(!currentCard){$("frontText").textContent="Ingen kort klare";$("frontMeta").textContent="Legg til kort, eller vent til repetisjon."; $("answerBox").innerHTML=""; return}
+ if(!currentCard){$("frontText").textContent="Ingen kort";$("frontMeta").textContent="Legg til kort, eller velg et annet språk."; $("answerBox").innerHTML=""; return}
  $("frontText").textContent=frontForCard(currentCard);
  $("frontMeta").innerHTML=`<span class="pill">${langNames[currentCard.lang]}</span> ${currentCard.tags.map(t=>`<span class="pill">${escapeHtml(t)}</span>`).join("")}`;
  if(showingAnswer){
